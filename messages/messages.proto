@@ -1,0 +1,456 @@
+// This file defines the data contracts (messages) for your Axiom package.
+// Every node's --input and --output refers to a message defined here.
+//
+// Run `axiom create message <Name>` to scaffold a new message below.
+// Run `axiom generate` to compile these definitions into language bindings in gen/.
+//
+// DOCUMENTATION
+//   Comments written directly above a message or field declaration are extracted
+//   automatically at publish time and shown in the Axiom registry as documentation.
+//   Write your descriptions there — no separate doc files needed.
+//
+//   Leading comment  (no blank line before the declaration) → registry description ✓
+//   Detached comment (blank line before the declaration)    → ignored by registry  ✗
+//
+// This file is yours to edit. Axiom only appends new message blocks — it never
+// overwrites or removes content you have written.
+
+syntax = "proto3";
+
+package christiangeorgelucas.locale_tools;
+
+// ── Shared output envelope ──────────────────────────────────────────────
+//
+// Every node that produces a single localized string (number, currency,
+// percent, date/time, relative time, interval, list, unit) shares this one
+// output shape. On failure `text` is empty and `error` carries a stable
+// token; on success `error` is empty.
+
+// A single localized string, echoing the locale actually applied.
+message FormattedText {
+  // The formatted/localized string. Empty on error.
+  string text = 1;
+  // The BCP-47/CLDR locale identifier actually used (normalized).
+  string locale = 2;
+  // Stable error token on failure (BAD_LOCALE, BAD_VALUE, BAD_CURRENCY,
+  // BAD_UNIT, BAD_DATE, UNKNOWN_STYLE); empty on success.
+  string error = 3;
+}
+
+// ── Numbers ──────────────────────────────────────────────────────────────
+
+// Input for FormatDecimal: a plain localized decimal number.
+message FormatDecimalInput {
+  // The numeric value to format.
+  double value = 1;
+  // CLDR locale identifier, e.g. "en_US", "de_DE", "hi_IN" (BCP-47 "-" also
+  // accepted, e.g. "de-DE").
+  string locale = 2;
+  // Optional custom CLDR number-pattern (e.g. "#,##0.###"); empty uses the
+  // locale's default decimal format.
+  string format = 3;
+  // When true, render in CLDR compact notation (e.g. "1K", "3M")
+  // instead of the full expanded number.
+  bool compact = 4;
+  // Compact form width, only used when compact=true: "short" (default) or
+  // "long" (e.g. "1 thousand").
+  string compact_format_type = 5;
+}
+
+// Input for FormatCurrency: an amount tagged with an ISO 4217 currency code.
+message FormatCurrencyInput {
+  // The amount to format.
+  double value = 1;
+  // ISO 4217 currency code, e.g. "USD", "EUR", "JPY".
+  string currency = 2;
+  // CLDR locale identifier, e.g. "en_US", "de_DE".
+  string locale = 3;
+  // "standard" (symbol, default) or "name" (spelled-out currency name,
+  // e.g. "1.00 US dollar").
+  string format_type = 4;
+  // When true, render in CLDR compact notation (e.g. "$1M").
+  bool compact = 5;
+}
+
+// Input for FormatPercent: a fraction rendered as a localized percentage.
+message FormatPercentInput {
+  // The fractional value, e.g. 0.256 -> "26%" (en_US, default pattern has
+  // no decimal places) / "26 %" (de_DE, space before sign).
+  double value = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // Optional custom CLDR pattern; empty uses the locale default.
+  string format = 3;
+}
+
+// Input for FormatScientific: a number rendered in localized scientific
+// notation (e.g. "1.23E4").
+message FormatScientificInput {
+  // The numeric value.
+  double value = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // Optional custom CLDR pattern; empty uses the locale default.
+  string format = 3;
+}
+
+// Input for ParseDecimal: recover a numeric value from a localized decimal
+// string (the inverse of FormatDecimal).
+message ParseDecimalInput {
+  // The localized decimal string, e.g. "1.234,56" for de_DE.
+  string text = 1;
+  // CLDR locale identifier the string was formatted in.
+  string locale = 2;
+}
+
+// A number parsed out of a localized string.
+message ParsedNumber {
+  // The parsed value.
+  double value = 1;
+  // True if the parsed value has no fractional part.
+  bool is_integer = 2;
+  // Stable error token on failure (BAD_LOCALE, UNPARSEABLE); empty on
+  // success.
+  string error = 3;
+}
+
+// Input for GetCurrencyInfo: locale-specific metadata about one ISO 4217
+// currency code.
+message GetCurrencyInfoInput {
+  // ISO 4217 currency code, e.g. "USD".
+  string currency = 1;
+  // CLDR locale the display name/symbol are localized into.
+  string locale = 2;
+}
+
+// Locale-specific display metadata for a currency.
+message CurrencyInfo {
+  // Normalized ISO 4217 code.
+  string currency = 1;
+  // Localized full currency name (e.g. "US Dollar" in en_US, "US-Dollar" in
+  // de_DE).
+  string name = 2;
+  // Localized currency symbol (e.g. "$", "€", "US$" depending on locale).
+  string symbol = 3;
+  // Number of fraction digits conventionally used (e.g. 2 for USD, 0 for
+  // JPY).
+  uint32 fraction_digits = 4;
+  // Stable error token on failure (BAD_LOCALE, UNKNOWN_CURRENCY); empty on
+  // success.
+  string error = 5;
+}
+
+// Input for GetTerritoryCurrencies: which currencies a territory has used.
+message GetTerritoryCurrenciesInput {
+  // ISO 3166-1 alpha-2 territory code, e.g. "US", "DE", "JP".
+  string territory = 1;
+  // When true, also include historical/non-legal-tender currencies (e.g.
+  // the pre-Euro Deutsche Mark for "DE"). Default false: current legal
+  // tender only.
+  bool include_historical = 2;
+}
+
+// The set of ISO 4217 currency codes a territory uses/used.
+message TerritoryCurrencies {
+  // Normalized territory code.
+  string territory = 1;
+  // Currency codes, most-recent first.
+  repeated string currencies = 2;
+  // Stable error token on failure (UNKNOWN_TERRITORY); empty on success.
+  string error = 3;
+}
+
+// ── Dates & times ────────────────────────────────────────────────────────
+
+// Input for FormatDate: a calendar date, no time-of-day.
+message FormatDateInput {
+  // ISO 8601 date, e.g. "2026-07-20".
+  string date = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // "full" | "long" | "medium" (default) | "short", or a literal CLDR date
+  // skeleton/pattern (e.g. "yyyy-MM-dd", "EEEE, MMMM d").
+  string format = 3;
+}
+
+// Input for FormatTime: a time-of-day, no date.
+message FormatTimeInput {
+  // ISO 8601 time, e.g. "15:04:05" or "15:04:05.250".
+  string time = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // "full" | "long" | "medium" (default) | "short", or a literal pattern.
+  string format = 3;
+}
+
+// Input for FormatDatetime: a combined date and time.
+message FormatDatetimeInput {
+  // ISO 8601 datetime, e.g. "2026-07-20T15:04:05" (a trailing "Z"/offset is
+  // accepted and dropped — Babel formats naive local time, with no
+  // timezone conversion). "full"/"long" styles append a zone designator
+  // to the output and treat this naive input as UTC for that designator
+  // (e.g. "...08:15:00 UTC"); "medium"/"short" have no zone designator.
+  string datetime = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // "full" | "long" | "medium" (default) | "short", or a literal pattern.
+  string format = 3;
+}
+
+// Input for FormatTimedelta: a duration rendered as relative time
+// (e.g. "3 hours ago", "in 2 days").
+message FormatTimedeltaInput {
+  // The duration in seconds. Negative means "in the past" unless
+  // add_direction handles sign separately (see below).
+  double seconds = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // Smallest unit to express: "year"|"month"|"week"|"day"|"hour"|"minute"|
+  // "second" (default "second").
+  string granularity = 3;
+  // When true, prefix/suffix with a direction phrase ("in ...", "... ago").
+  // When false, renders a bare magnitude (e.g. "3 hours").
+  bool add_direction = 4;
+  // Width of the wording: "narrow" | "short" | "medium" | "long" (default),
+  // e.g. narrow "in 1h" vs long "in 1 hour". Applies whether or not
+  // add_direction is set.
+  string format = 5;
+  // Ratio (0-1) above which a value is rounded up to the next unit
+  // (default 0.85, matching Babel's default).
+  double threshold = 6;
+}
+
+// Input for FormatInterval: a date/time range rendered as one localized
+// span (e.g. "Jan 1, 2026 – Jan 5, 2026" by default, or the more compact
+// "Jan 1 – 5, 2026" with skeleton="yMMMd").
+message FormatIntervalInput {
+  // ISO 8601 start date or datetime.
+  string start = 1;
+  // ISO 8601 end date or datetime.
+  string end = 2;
+  // CLDR locale identifier.
+  string locale = 3;
+  // Optional CLDR skeleton (e.g. "yMMMd"); empty lets Babel pick the
+  // narrowest common skeleton for the two instants.
+  string skeleton = 4;
+}
+
+// Input for ParseDate: recover a calendar date from a localized string.
+message ParseDateInput {
+  // The localized date string.
+  string text = 1;
+  // CLDR locale identifier the string was formatted in.
+  string locale = 2;
+  // "full" | "long" | "medium" (default) | "short" — must match the style
+  // the text was formatted with. Babel's date parser is pattern-driven, not
+  // free-form: it reliably round-trips a purely numeric pattern ("short",
+  // and "medium"/"short" in many non-English locales) but a pattern with a
+  // spelled-out month/weekday name can fail to parse even when it was
+  // Babel's own FormatDate output for the same locale+format — "short" is
+  // the style most likely to round-trip everywhere. On failure this always
+  // returns a structured UNPARSEABLE error, never a crash.
+  string format = 3;
+}
+
+// A date parsed out of a localized string.
+message ParsedDate {
+  // ISO 8601 date (e.g. "2026-07-20").
+  string date = 1;
+  // Stable error token on failure (BAD_LOCALE, UNPARSEABLE); empty on
+  // success.
+  string error = 2;
+}
+
+// Input for ParseTime: recover a time-of-day from a localized string.
+message ParseTimeInput {
+  // The localized time string.
+  string text = 1;
+  // CLDR locale identifier the string was formatted in.
+  string locale = 2;
+  // "full" | "long" | "medium" (default) | "short" — see ParseDateInput.format
+  // for the same round-trip caveat (numeric styles are the reliable ones).
+  string format = 3;
+}
+
+// A time parsed out of a localized string.
+message ParsedTime {
+  // ISO 8601 time (e.g. "15:04:05").
+  string time = 1;
+  // Stable error token on failure (BAD_LOCALE, UNPARSEABLE); empty on
+  // success.
+  string error = 2;
+}
+
+// Input for GetCalendarNames: the localized names for one calendar field
+// (weekdays, months, quarters, eras, or AM/PM-style day periods).
+message GetCalendarNamesInput {
+  // CLDR locale identifier.
+  string locale = 1;
+  // Which field to name: "weekdays" | "months" | "quarters" | "eras" |
+  // "periods" (AM/PM and other day-period names).
+  string field = 2;
+  // "format" (default — names as used inline in a formatted date) or
+  // "stand-alone" (names as used standalone, e.g. a calendar column
+  // header; can differ in capitalization/inflection in some languages).
+  string context = 3;
+  // "wide" (default, e.g. "Monday") | "abbreviated" (e.g. "Mon") |
+  // "narrow" (e.g. "M").
+  string width = 4;
+}
+
+// The localized names for one calendar field, in CLDR canonical order
+// (weekdays start Monday; months/quarters/eras in calendar order).
+message CalendarNames {
+  // Field echoed back.
+  string field = 1;
+  // The localized names, in canonical order.
+  repeated string names = 2;
+  // Stable error token on failure (BAD_LOCALE, UNKNOWN_FIELD); empty on
+  // success.
+  string error = 3;
+}
+
+// Input for GetTimezoneName: the localized display name for an IANA time
+// zone.
+message GetTimezoneNameInput {
+  // IANA time zone name, e.g. "America/New_York", "Europe/Berlin".
+  string timezone = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // "long" (default, e.g. "Eastern Standard Time") or "short" (e.g. "ET").
+  string width = 3;
+  // ISO 8601 date/datetime used to resolve DST vs standard offset (default:
+  // a fixed reference instant if empty — see the node description).
+  string at = 4;
+}
+
+// The localized display name and current UTC offset for a time zone.
+message TimezoneName {
+  // The localized display name.
+  string display_name = 1;
+  // The UTC offset at `at`, formatted as "GMT+02:00" style.
+  string gmt_offset = 2;
+  // Stable error token on failure (BAD_LOCALE, UNKNOWN_TIMEZONE); empty on
+  // success.
+  string error = 3;
+}
+
+// ── Lists ────────────────────────────────────────────────────────────────
+
+// Input for FormatList: join items into one localized, grammatically
+// correct list phrase (e.g. ["a","b","c"] -> "a, b, and c" in en_US, "a, b
+// y c" in es).
+message FormatListInput {
+  // The items to join, in order, already rendered as strings.
+  repeated string items = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // "standard" (default, "and"-style conjunction) | "standard-short" |
+  // "or" (disjunction) | "or-short" | "unit" | "unit-short" |
+  // "unit-narrow".
+  string style = 3;
+}
+
+// ── Units ────────────────────────────────────────────────────────────────
+
+// Input for FormatUnit: a measurement value with its CLDR unit code.
+message FormatUnitInput {
+  // The numeric value.
+  double value = 1;
+  // CLDR measurement-unit code, e.g. "length-meter", "duration-hour",
+  // "digital-megabyte", "temperature-celsius".
+  string unit = 2;
+  // CLDR locale identifier.
+  string locale = 3;
+  // "long" (default, e.g. "5 meters") | "short" (e.g. "5 m") | "narrow"
+  // (e.g. "5m").
+  string length = 4;
+}
+
+// Input for FormatCompoundUnit: a rate expressed as one unit per another
+// (e.g. "5 km/h").
+message FormatCompoundUnitInput {
+  // The numeric value of the numerator.
+  double value = 1;
+  // CLDR numerator unit code, e.g. "length-kilometer".
+  string numerator_unit = 2;
+  // CLDR denominator unit code, e.g. "duration-hour".
+  string denominator_unit = 3;
+  // CLDR locale identifier.
+  string locale = 4;
+  // "long" (default) | "short" | "narrow".
+  string length = 5;
+}
+
+// ── Pluralization ────────────────────────────────────────────────────────
+
+// Input for GetPluralCategory: which CLDR plural bucket a number falls
+// into for a locale (drives choosing "1 item" vs "2 items", and languages
+// with richer plural systems like Arabic/Russian/Polish).
+message GetPluralCategoryInput {
+  // The number being counted.
+  double number = 1;
+  // CLDR locale identifier.
+  string locale = 2;
+  // "cardinal" (default, "1 file" vs "2 files") or "ordinal" ("1st" vs
+  // "2nd" vs "3rd").
+  string form = 3;
+}
+
+// The CLDR plural category a number resolves to in a locale.
+message PluralCategory {
+  // One of CLDR's plural categories: "zero" | "one" | "two" | "few" |
+  // "many" | "other". Not every locale/form uses every category; "other"
+  // is the universal fallback and always valid.
+  string category = 1;
+  // Locale echoed back.
+  string locale = 2;
+  // Stable error token on failure (BAD_LOCALE, UNKNOWN_FORM); empty on
+  // success.
+  string error = 3;
+}
+
+// ── Locale metadata ──────────────────────────────────────────────────────
+
+// Input for DescribeLocale: parse and describe a CLDR locale identifier.
+message DescribeLocaleInput {
+  // CLDR/BCP-47 locale identifier, e.g. "de_DE", "zh_Hant_TW", "en".
+  string locale = 1;
+  // Locale the descriptive names are themselves localized into (default:
+  // the locale describes itself, i.e. `locale`'s own display name in its
+  // own language).
+  string display_locale = 2;
+}
+
+// Rich CLDR metadata about one locale.
+message LocaleInfo {
+  // Canonical normalized locale identifier (e.g. "de_DE").
+  string locale = 1;
+  // ISO 639 language subtag (e.g. "de").
+  string language = 2;
+  // ISO 15924 script subtag if present (e.g. "Hant"); empty if none.
+  string script = 3;
+  // ISO 3166-1 territory subtag if present (e.g. "DE"); empty if none.
+  string territory = 4;
+  // The locale's own name, localized into `display_locale` (or into itself
+  // if display_locale was empty), e.g. "German (Germany)".
+  string display_name = 5;
+  // The locale's own name in English, e.g. "German (Germany)".
+  string english_name = 6;
+  // "ltr" or "rtl" — the locale's dominant text direction.
+  string text_direction = 7;
+  // ISO weekday number (1=Monday..7=Sunday) of the first day of the week
+  // in this locale.
+  uint32 first_week_day = 8;
+  // ISO weekday numbers (1=Monday..7=Sunday) that are weekend days.
+  repeated uint32 weekend_days = 9;
+  // The decimal separator character for this locale (e.g. "." or ",").
+  string decimal_symbol = 10;
+  // The digit-grouping separator character for this locale (e.g. "," or
+  // "." or a thin space).
+  string group_symbol = 11;
+  // The percent sign for this locale (usually "%", but not universally).
+  string percent_symbol = 12;
+  // Stable error token on failure (BAD_LOCALE); empty on success.
+  string error = 13;
+}

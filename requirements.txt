@@ -1,0 +1,2 @@
+# Add your Python runtime dependencies here, one per line.
+Babel==2.18.0

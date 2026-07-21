@@ -1,0 +1,89 @@
+name: christiangeorgelucas/locale-tools
+version: 0.1.0
+language: python
+description: Composable Axiom locale-aware formatting & parsing nodes — numbers, currency, percent, scientific notation, dates/times, relative time, intervals, lists, units, CLDR pluralization, and locale metadata — over small typed value+locale+options envelopes, wrapping the BSD-3-Clause, CLDR-backed Babel library. Every node is stateless, deterministic, and offline (CLDR data ships in the wheel); malformed input returns a structured error, never a crash.
+nodes:
+    - name: FormatDecimal
+      description: Format a number as a localized decimal string per CLDR rules (grouping separator, decimal separator, digit shapes), e.g. 1234.5 -> "1,234.5" (en_US) / "1.234,5" (de_DE) / "١٬٢٣٤٫٥" (ar with native digits). Set compact=true for CLDR compact notation (e.g. "1K"). Wraps Babel babel.numbers.format_decimal / format_compact_decimal.
+      input: FormatDecimalInput
+      output: FormattedText
+    - name: FormatCurrency
+      description: Format an amount with an ISO 4217 currency code per CLDR locale conventions (symbol placement, grouping, fraction digits), e.g. 1234.5 USD -> "$1,234.50" (en_US) / "1.234,50 $" (de_DE, standard) or "1.234,50 US-Dollar" (format_type=name). Set compact=true for compact notation (e.g. "$1M"). Wraps Babel babel.numbers.format_currency / format_compact_currency.
+      input: FormatCurrencyInput
+      output: FormattedText
+    - name: FormatPercent
+      description: Format a fraction as a localized percentage per CLDR rules, e.g. 0.256 -> "25.6%" (en_US) / "25,6 %" (de_DE, space before sign). Wraps Babel babel.numbers.format_percent.
+      input: FormatPercentInput
+      output: FormattedText
+    - name: FormatScientific
+      description: Format a number in localized scientific notation per CLDR patterns, e.g. 12345.0 -> "1.2345E4". Wraps Babel babel.numbers.format_scientific.
+      input: FormatScientificInput
+      output: FormattedText
+    - name: ParseDecimal
+      description: Parse a localized decimal string back into a numeric value (the inverse of FormatDecimal), respecting the locale's grouping and decimal separators, e.g. "1.234,56" in de_DE -> 1234.56. Wraps Babel babel.numbers.parse_decimal.
+      input: ParseDecimalInput
+      output: ParsedNumber
+    - name: GetCurrencyInfo
+      description: 'Look up locale-specific display metadata for an ISO 4217 currency code: its localized full name, localized symbol, and conventional fraction-digit count, e.g. "JPY" in en_US -> name "Japanese Yen", symbol "¥", fraction_digits 0. Wraps Babel babel.numbers.get_currency_name/get_currency_symbol/get_currency_precision.'
+      input: GetCurrencyInfoInput
+      output: CurrencyInfo
+    - name: GetTerritoryCurrencies
+      description: List the ISO 4217 currency codes a territory uses or has used, most-recent first, e.g. "DE" -> ["EUR"] (the default) or ["EUR","DEM"] (include_historical=true, adds the pre-Euro Deutsche Mark). Wraps Babel babel.numbers.get_territory_currencies.
+      input: GetTerritoryCurrenciesInput
+      output: TerritoryCurrencies
+    - name: FormatDate
+      description: Format a calendar date per CLDR locale conventions and length style, e.g. 2026-07-20 -> "Jul 20, 2026" (en_US, medium) / "20.07.2026" (de_DE, medium) / "Monday, July 20, 2026" (en_US, full). Wraps Babel babel.dates.format_date.
+      input: FormatDateInput
+      output: FormattedText
+    - name: FormatTime
+      description: Format a time-of-day per CLDR locale conventions (12h vs 24h clock, separators), e.g. 15:04:05 -> "3:04:05 PM" (en_US, medium) / "15:04:05" (de_DE, medium). Wraps Babel babel.dates.format_time.
+      input: FormatTimeInput
+      output: FormattedText
+    - name: FormatDatetime
+      description: Format a combined date and time per CLDR locale conventions and length style, e.g. 2026-07-20T15:04:05 -> "Jul 20, 2026, 3:04:05 PM" (en_US, medium). "full"/"long" styles append a timezone designator and treat the naive input as UTC for it (e.g. "...08:15:00 UTC"). Wraps Babel babel.dates.format_datetime.
+      input: FormatDatetimeInput
+      output: FormattedText
+    - name: FormatTimedelta
+      description: Format a duration as localized relative time, e.g. 7200 seconds -> "2 hours" (add_direction=false) or "in 2 hours" (add_direction=true, positive) / "2 hours ago" (add_direction=true, negative). Wraps Babel babel.dates.format_timedelta.
+      input: FormatTimedeltaInput
+      output: FormattedText
+    - name: FormatInterval
+      description: Format a date/time range as one localized span, e.g. 2026-01-01..2026-01-05 -> "Jan 1, 2026 – Jan 5, 2026" (en_US, default) or the more compact "Jan 1 – 5, 2026" when skeleton="yMMMd" tells Babel both ends share the same month/year. Wraps Babel babel.dates.format_interval.
+      input: FormatIntervalInput
+      output: FormattedText
+    - name: ParseDate
+      description: Parse a localized date string (formatted at a given CLDR length style) back into an ISO 8601 date, the inverse of FormatDate. Wraps Babel babel.dates.parse_date.
+      input: ParseDateInput
+      output: ParsedDate
+    - name: ParseTime
+      description: Parse a localized time string (formatted at a given CLDR length style) back into an ISO 8601 time, the inverse of FormatTime. Wraps Babel babel.dates.parse_time.
+      input: ParseTimeInput
+      output: ParsedTime
+    - name: GetCalendarNames
+      description: List the localized CLDR names for one calendar field (weekdays, months, quarters, eras, or day-periods) in canonical order, e.g. field=weekdays, width=abbreviated, en_US -> ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]. Wraps Babel babel.dates.get_day_names/get_month_names/get_quarter_names/get_era_names/get_period_names.
+      input: GetCalendarNamesInput
+      output: CalendarNames
+    - name: GetTimezoneName
+      description: Look up the localized display name and UTC offset for an IANA time zone at a given instant, e.g. "America/New_York" in en_US -> "Eastern Daylight Time", "GMT-04:00" (in July). Wraps Babel babel.dates.get_timezone_name with Python zoneinfo.
+      input: GetTimezoneNameInput
+      output: TimezoneName
+    - name: FormatList
+      description: Join items into one localized, grammatically correct list phrase per CLDR list patterns, e.g. ["a","b","c"] -> "a, b, and c" (en_US, standard) / "a, b y c" (es, standard — "y" not "e"). Wraps Babel babel.lists.format_list.
+      input: FormatListInput
+      output: FormattedText
+    - name: FormatUnit
+      description: Format a measurement value with its CLDR unit display name at a chosen length, e.g. 5 "length-meter" -> "5 meters" (en_US, long) / "5 m" (short). Wraps Babel babel.units.format_unit.
+      input: FormatUnitInput
+      output: FormattedText
+    - name: FormatCompoundUnit
+      description: Format a rate expressed as one CLDR unit per another, e.g. 5 "length-kilometer" per "duration-hour" -> "5 kilometers per hour" (en_US, long) / "5 km/h" (short). Wraps Babel babel.units.format_compound_unit.
+      input: FormatCompoundUnitInput
+      output: FormattedText
+    - name: GetPluralCategory
+      description: Resolve which CLDR plural category a number falls into for a locale — the standard way to pick between "1 file" / "2 files" in English, or the richer few/many/other buckets of languages like Polish, Arabic, or Russian. Wraps Babel babel.core.Locale.plural_form / ordinal_form.
+      input: GetPluralCategoryInput
+      output: PluralCategory
+    - name: DescribeLocale
+      description: 'Parse a CLDR/BCP-47 locale identifier and return its rich metadata: language/script/territory subtags, localized and English display names, text direction, first day of week, weekend days, and number symbols (decimal/group/percent). Wraps Babel babel.core.Locale.'
+      input: DescribeLocaleInput
+      output: LocaleInfo
