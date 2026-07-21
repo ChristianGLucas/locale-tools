@@ -11,7 +11,9 @@ def format_datetime(ax: AxiomContext, input: FormatDatetimeInput) -> FormattedTe
     (en_US, medium). A trailing "Z"/offset on the input is accepted and
     dropped — the naive wall-clock fields are formatted as given, with no
     timezone conversion. "full"/"long" styles append a timezone designator
-    and treat the naive input as UTC for it (e.g. "...08:15:00 UTC").
+    and treat the naive input as UTC for it — "long" renders it short
+    (e.g. "...08:15:00 UTC"), "full" spelled out (e.g. "...08:15:00
+    Coordinated Universal Time").
     """
     try:
         loc = parse_locale(input.locale)

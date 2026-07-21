@@ -45,6 +45,16 @@ def test_format_decimal_de_de():
     assert result.text == "1.234.567,891"
 
 
+def test_format_decimal_hindi_lakh_grouping():
+    # Independent oracle: the Indian numbering system groups digits as
+    # 3, then 2, then 2 from the right (lakh/crore), not 3-3-3 like
+    # en_US/de_DE — a real-world convention, not a Babel-specific choice.
+    ax = _TestContext()
+    result = format_decimal(ax, FormatDecimalInput(value=1234567, locale="hi_IN"))
+    assert result.error == ""
+    assert result.text == "12,34,567"
+
+
 def test_format_decimal_compact():
     ax = _TestContext()
     result = format_decimal(

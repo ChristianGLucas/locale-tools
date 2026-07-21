@@ -50,16 +50,28 @@ def test_format_datetime_trailing_z_offset_dropped():
     assert result.text == "20.07.2026, 15:04:05"
 
 
-def test_format_datetime_long_style_appends_utc_designator():
+def test_format_datetime_long_style_appends_short_utc_designator():
     # "long"/"full" styles include a zone designator; a naive (offset-free)
     # input is treated as UTC for that designator — documented on the
-    # datetime field so a caller isn't surprised by "UTC" appearing.
+    # datetime field so a caller isn't surprised by it appearing. "long"
+    # renders the designator short, as the literal abbreviation "UTC".
     ax = _TestContext()
     result = format_datetime(
         ax, FormatDatetimeInput(datetime="2026-11-03T08:15:00", locale="en_GB", format="long")
     )
     assert result.error == ""
     assert result.text == "3 November 2026, 08:15:00 UTC"
+
+
+def test_format_datetime_full_style_spells_out_designator():
+    # "full" renders the same UTC designator spelled out in full, NOT the
+    # "UTC" abbreviation "long" uses — the two styles must not be confused.
+    ax = _TestContext()
+    result = format_datetime(
+        ax, FormatDatetimeInput(datetime="2026-11-03T08:15:00", locale="en_GB", format="full")
+    )
+    assert result.error == ""
+    assert result.text == "Tuesday, 3 November 2026, 08:15:00 Coordinated Universal Time"
 
 
 def test_format_datetime_bad_datetime_is_structured_error():

@@ -4,7 +4,7 @@ language: python
 description: Composable Axiom locale-aware formatting & parsing nodes — numbers, currency, percent, scientific notation, dates/times, relative time, intervals, lists, units, CLDR pluralization, and locale metadata — over small typed value+locale+options envelopes, wrapping the BSD-3-Clause, CLDR-backed Babel library. Every node is stateless, deterministic, and offline (CLDR data ships in the wheel); malformed input returns a structured error, never a crash.
 nodes:
     - name: FormatDecimal
-      description: Format a number as a localized decimal string per CLDR rules (grouping separator, decimal separator, digit shapes), e.g. 1234.5 -> "1,234.5" (en_US) / "1.234,5" (de_DE) / "١٬٢٣٤٫٥" (ar with native digits). Set compact=true for CLDR compact notation (e.g. "1K"). Wraps Babel babel.numbers.format_decimal / format_compact_decimal.
+      description: Format a number as a localized decimal string per CLDR rules (grouping separator, decimal separator), e.g. 1234.5 -> "1,234.5" (en_US) / "1.234,5" (de_DE), and 1234567 -> "12,34,567" (hi_IN, Indian lakh/crore grouping — groups of 2 digits after the first 3, not groups of 3). Set compact=true for CLDR compact notation (e.g. "1K"). Wraps Babel babel.numbers.format_decimal / format_compact_decimal.
       input: FormatDecimalInput
       output: FormattedText
     - name: FormatCurrency
@@ -12,7 +12,7 @@ nodes:
       input: FormatCurrencyInput
       output: FormattedText
     - name: FormatPercent
-      description: Format a fraction as a localized percentage per CLDR rules, e.g. 0.256 -> "25.6%" (en_US) / "25,6 %" (de_DE, space before sign). Wraps Babel babel.numbers.format_percent.
+      description: Format a fraction as a localized percentage per CLDR rules, e.g. 0.256 -> "26%" (en_US, default pattern has no decimal places) / "26 %" (de_DE, space before sign). Wraps Babel babel.numbers.format_percent.
       input: FormatPercentInput
       output: FormattedText
     - name: FormatScientific
@@ -40,7 +40,7 @@ nodes:
       input: FormatTimeInput
       output: FormattedText
     - name: FormatDatetime
-      description: Format a combined date and time per CLDR locale conventions and length style, e.g. 2026-07-20T15:04:05 -> "Jul 20, 2026, 3:04:05 PM" (en_US, medium). "full"/"long" styles append a timezone designator and treat the naive input as UTC for it (e.g. "...08:15:00 UTC"). Wraps Babel babel.dates.format_datetime.
+      description: Format a combined date and time per CLDR locale conventions and length style, e.g. 2026-07-20T15:04:05 -> "Jul 20, 2026, 3:04:05 PM" (en_US, medium). "full"/"long" styles append a timezone designator and treat the naive input as UTC for it — "long" renders it short (e.g. "...08:15:00 UTC"), "full" renders it spelled out (e.g. "...08:15:00 Coordinated Universal Time"); "medium"/"short" have no zone designator. Wraps Babel babel.dates.format_datetime.
       input: FormatDatetimeInput
       output: FormattedText
     - name: FormatTimedelta

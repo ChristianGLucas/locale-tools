@@ -188,8 +188,9 @@ message FormatDatetimeInput {
   // ISO 8601 datetime, e.g. "2026-07-20T15:04:05" (a trailing "Z"/offset is
   // accepted and dropped — Babel formats naive local time, with no
   // timezone conversion). "full"/"long" styles append a zone designator
-  // to the output and treat this naive input as UTC for that designator
-  // (e.g. "...08:15:00 UTC"); "medium"/"short" have no zone designator.
+  // and treat this naive input as UTC for it — "long" renders it short
+  // (e.g. "...08:15:00 UTC"), "full" spelled out (e.g. "...08:15:00
+  // Coordinated Universal Time"); "medium"/"short" have no designator.
   string datetime = 1;
   // CLDR locale identifier.
   string locale = 2;
