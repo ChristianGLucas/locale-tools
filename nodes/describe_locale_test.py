@@ -81,3 +81,26 @@ def test_describe_locale_bad_locale_is_structured_error():
     ax = _TestContext()
     result = describe_locale(ax, DescribeLocaleInput(locale="not a locale!!"))
     assert result.error == "BAD_LOCALE"
+
+
+def test_describe_locale_modifier_still_works():
+    # A real CLDR modifier suffix (not junk) must keep working after the
+    # trailing-junk rejection below.
+    ax = _TestContext()
+    result = describe_locale(ax, DescribeLocaleInput(locale="de_AT@euro"))
+    assert result.error == ""
+    assert result.language == "de"
+    assert result.territory == "AT"
+
+
+def test_describe_locale_rejects_trailing_junk_rather_than_silently_truncating():
+    # babel.Locale.parse is permissive: it silently drops any
+    # separator-delimited component that doesn't look like a real subtag
+    # instead of rejecting the whole string, so "en_US; DROP TABLE x;"
+    # would otherwise quietly resolve to plain "en" rather than erroring.
+    # A caller passing garbage should get a clear BAD_LOCALE, not a
+    # different locale than they asked for.
+    ax = _TestContext()
+    result = describe_locale(ax, DescribeLocaleInput(locale="en_US; DROP TABLE x;"))
+    assert result.error == "BAD_LOCALE"
+    assert result.locale == ""

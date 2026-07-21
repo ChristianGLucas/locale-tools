@@ -12,8 +12,20 @@ caller-controlled string can't drive unbounded parsing cost.
 from __future__ import annotations
 
 import datetime as _dt
+import re as _re
 
 from babel import Locale, UnknownLocaleError
+
+# babel.Locale.parse is permissive about trailing junk: it splits on the
+# separator and silently drops any component that doesn't look like a
+# language/script/territory/variant subtag rather than rejecting the whole
+# string — e.g. "en_US; DROP TABLE x;" parses to plain "en" instead of
+# raising. That is surprising for a node whose job is to validate a clean
+# locale identifier, so we constrain the accepted character set ourselves
+# BEFORE handing anything to Babel: only what a real CLDR/BCP-47 identifier
+# ever contains (letters, digits, '_', '-', '@' for a modifier like
+# "de_AT@euro", '.' for an encoding suffix like "en_US.UTF-8").
+_LOCALE_CHARS = _re.compile(r"^[A-Za-z0-9_@.\-]+$")
 
 # Bounds enforced before any Babel/locale-data call. These exist to put a
 # hard, tested ceiling on caller-controlled cost, not to be generous
@@ -57,6 +69,10 @@ def parse_locale(locale_str: str) -> Locale:
     if not locale_str:
         raise LocaleToolsError("BAD_LOCALE", "locale is required")
     _check_len(locale_str, MAX_LOCALE_LEN, "locale")
+    if not _LOCALE_CHARS.match(locale_str):
+        raise LocaleToolsError(
+            "BAD_LOCALE", f"locale {locale_str!r} contains characters no CLDR identifier uses"
+        )
     normalized = locale_str.replace("-", "_")
     try:
         return Locale.parse(normalized)
