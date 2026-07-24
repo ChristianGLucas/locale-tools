@@ -1,5 +1,5 @@
 name: christiangeorgelucas/locale-tools
-version: 0.1.0
+version: 0.2.0
 language: python
 description: Composable Axiom locale-aware formatting & parsing nodes — numbers, currency, percent, scientific notation, dates/times, relative time, intervals, lists, units, CLDR pluralization, and locale metadata — over small typed value+locale+options envelopes, wrapping the BSD-3-Clause, CLDR-backed Babel library. Every node is stateless, deterministic, and offline (CLDR data ships in the wheel); malformed input returns a structured error, never a crash.
 nodes:

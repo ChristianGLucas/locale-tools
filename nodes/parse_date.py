@@ -4,8 +4,6 @@ from gen.messages_pb2 import ParseDateInput, ParsedDate
 from gen.axiom_context import AxiomContext
 from nodes._common import LocaleToolsError, parse_locale
 
-_MAX_TEXT_LEN = 64
-
 
 def parse_date(ax: AxiomContext, input: ParseDateInput) -> ParsedDate:
     """Parse a localized date string (formatted at a given CLDR length
@@ -18,10 +16,6 @@ def parse_date(ax: AxiomContext, input: ParseDateInput) -> ParsedDate:
         loc = parse_locale(input.locale)
         if not input.text:
             raise LocaleToolsError("UNPARSEABLE", "text is required")
-        if len(input.text) > _MAX_TEXT_LEN:
-            raise LocaleToolsError(
-                "BAD_VALUE", f"text is {len(input.text)} chars, exceeding the {_MAX_TEXT_LEN} limit"
-            )
         fmt = input.format or "medium"
         d = dates.parse_date(input.text, locale=loc, format=fmt)
         return ParsedDate(date=d.isoformat())
